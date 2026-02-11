@@ -1,54 +1,89 @@
 <!DOCTYPE html>
+
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>RaveOne Academy LMS</title>
-    <!-- External Resources -->
-    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
-    
-    <!-- CSS Injection -->
-    <?!= include('css/odoo-style'); ?>
-    <?!= include('css/responsive'); ?>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>RaveOne Academy LMS</title>
+
+<!-- External Resources -->
+<link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+
+<!-- CSS Injection -->
+<?!= include('css/odoo-style'); ?>
+<?!= include('css/responsive'); ?>
+
+
 </head>
 <body>
-    <nav class="top-nav">
-        <div class="nav-container">
-            <div class="nav-logo">
-                <img src="https://rajeshkrao1976.github.io/rta/assets/logo.png" alt="Logo" class="logo">
-                <span class="brand-name">RaveOne Academy</span>
+<!-- Top Navigation Bar -->
+<nav class="top-nav" id="topNav">
+<div class="nav-container">
+<div class="nav-logo">
+<img src="https://www.google.com/search?q=https://rajeshkrao1976.github.io/rta/assets/logo.png" alt="RaveOne Academy" class="logo">
+<span class="brand-name">RaveOne Academy</span>
+</div>
+
+        <div class="user-menu" id="userMenu">
+            <div class="user-avatar" id="userAvatar">
+                <i class="fas fa-user-circle"></i>
             </div>
-            <div class="user-menu">
-                <div class="user-avatar"><i class="fas fa-user-circle"></i></div>
-                <div class="user-info" id="userInfo">
-                    <span class="user-name">Loading...</span>
-                </div>
+            <div class="user-info" id="userInfo">
+                <span class="user-name">Loading...</span>
             </div>
         </div>
-    </nav>
-
-    <div class="main-container">
-        <aside class="sidebar">
-            <ul class="sidebar-menu">
-                <li class="menu-item active" onclick="loadDashboard()"><i class="fas fa-home"></i><span>Dashboard</span></li>
-                <li class="menu-item" onclick="logout()"><i class="fas fa-sign-out-alt"></i><span>Logout</span></li>
-            </ul>
-        </aside>
-        <main class="content-area" id="contentArea">
-            <div class="loading-container"><div class="loading-spinner"></div><p>Syncing...</p></div>
-        </main>
     </div>
+</nav>
 
-    <!-- JS Injection -->
-    <?!= include('config'); ?>
-    <?!= include('js/Auth'); ?>
-    <?!= include('js/app'); ?>
-    
-    <script>
-        window.addEventListener('load', () => {
-            if(typeof initApp === 'function') initApp();
-        });
-    </script>
+<div class="main-container">
+    <!-- Sidebar -->
+    <aside class="sidebar" id="sidebar">
+        <ul class="sidebar-menu">
+            <li class="menu-item active" onclick="loadDashboard()">
+                <i class="fas fa-home"></i><span>Dashboard</span>
+            </li>
+            <li class="menu-item" onclick="loadMyCourses()">
+                <i class="fas fa-graduation-cap"></i><span>Courses</span>
+            </li>
+            <li class="menu-item admin-only" onclick="loadAdminDashboard()">
+                <i class="fas fa-cogs"></i><span>Admin</span>
+            </li>
+            <li class="menu-item" onclick="logout()">
+                <i class="fas fa-sign-out-alt"></i><span>Logout</span>
+            </li>
+        </ul>
+    </aside>
+
+    <!-- Main Content Area -->
+    <main class="content-area" id="contentArea">
+        <div class="loading-container" id="loading">
+            <div class="loading-spinner"></div>
+            <p>Syncing system...</p>
+        </div>
+    </main>
+</div>
+
+<!-- JS Injection - All your files included here -->
+<?!= include('config'); ?>
+<?!= include('js/api'); ?>
+<?!= include('js/auth'); ?>
+<?!= include('js/dashboard'); ?>
+<?!= include('js/admin'); ?>
+<?!= include('js/backup'); ?>
+<?!= include('js/app'); ?>
+
+<script>
+    // Start application on load
+    window.addEventListener('load', function() {
+        if (typeof initApp === 'function') {
+            initApp();
+        } else {
+            console.error("Critical: initApp not found in js/app.html");
+        }
+    });
+</script>
+
+
 </body>
 </html>
