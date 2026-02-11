@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>RaveOne Academy LMS</title>
+    
+    <!-- Odoo Enterprise 17 Style -->
+    <link rel="stylesheet" href="css/odoo-style.css">
+    <link rel="stylesheet" href="css/responsive.css">
+    
+    <!-- Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap" rel="stylesheet">
+    
+    <!-- Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    
+    <!-- Favicon -->
+    <link rel="icon" type="image/x-icon" href="assets/favicon.ico">
+</head>
+<body>
+    <!-- Top Navigation Bar -->
+    <nav class="top-nav" id="topNav">
+        <div class="nav-container">
+            <!-- Logo -->
+            <div class="nav-logo">
+                <img src="assets/logo.png" alt="RaveOne Academy" class="logo">
+                <span class="brand-name">RaveOne Academy</span>
+            </div>
+            
+            <!-- User Menu -->
+            <div class="user-menu" id="userMenu">
+                <div class="user-avatar" id="userAvatar">
+                    <i class="fas fa-user-circle"></i>
+                </div>
+                <div class="user-info" id="userInfo">
+                    <span class="user-name">Loading...</span>
+                    <span class="user-role">Student</span>
+                </div>
+                <div class="dropdown-arrow">
+                    <i class="fas fa-chevron-down"></i>
+                </div>
+                
+                <!-- Dropdown -->
+                <div class="dropdown-menu" id="userDropdown">
+                    <a href="#" onclick="loadDashboard()">
+                        <i class="fas fa-tachometer-alt"></i> Dashboard
+                    </a>
+                    <a href="#" onclick="loadProfile()">
+                        <i class="fas fa-user"></i> My Profile
+                    </a>
+                    <a href="#" onclick="loadGrades()">
+                        <i class="fas fa-chart-line"></i> My Grades
+                    </a>
+                    <div class="divider"></div>
+                    <a href="#" onclick="logout()">
+                        <i class="fas fa-sign-out-alt"></i> Logout
+                    </a>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Main Container -->
+    <div class="main-container">
+        <!-- Sidebar -->
+        <aside class="sidebar" id="sidebar">
+            <div class="sidebar-header">
+                <h3>Navigation</h3>
+            </div>
+            
+            <ul class="sidebar-menu">
+                <!-- For Students -->
+                <li class="menu-item" onclick="loadDashboard()">
+                    <i class="fas fa-home"></i>
+                    <span>Dashboard</span>
+                </li>
+                
+                <li class="menu-item" onclick="loadMyCourses()">
+                    <i class="fas fa-graduation-cap"></i>
+                    <span>My Courses</span>
+                    <span class="badge" id="activeCourses">0</span>
+                </li>
+                
+                <li class="menu-item" onclick="loadLessons()">
+                    <i class="fas fa-book-open"></i>
+                    <span>Learning Path</span>
+                    <span class="badge progress" id="progressBadge">0%</span>
+                </li>
+                
+                <li class="menu-item" onclick="loadAssignments()">
+                    <i class="fas fa-tasks"></i>
+                    <span>Assignments</span>
+                    <span class="badge alert" id="pendingAssignments">0</span>
+                </li>
+                
+                <li class="menu-item" onclick="loadSessions()">
+                    <i class="fas fa-video"></i>
+                    <span>Live Sessions</span>
+                    <span class="badge live" id="liveNow">0 Live</span>
+                </li>
+                
+                <li class="menu-item" onclick="loadExams()">
+                    <i class="fas fa-clipboard-check"></i>
+                    <span>Exams</span>
+                </li>
+                
+                <li class="menu-item" onclick="loadGrades()">
+                    <i class="fas fa-chart-bar"></i>
+                    <span>Gradebook</span>
+                </li>
+                
+                <!-- For Admins -->
+                <li class="menu-item admin-only" onclick="loadAdminDashboard()">
+                    <i class="fas fa-cogs"></i>
+                    <span>Admin Panel</span>
+                </li>
+                
+                <li class="menu-item admin-only" onclick="loadStudentManagement()">
+                    <i class="fas fa-users"></i>
+                    <span>Students</span>
+                </li>
+                
+                <li class="menu-item admin-only" onclick="loadGradingHub()">
+                    <i class="fas fa-check-double"></i>
+                    <span>Grading Hub</span>
+                    <span class="badge alert" id="pendingGrading">0</span>
+                </li>
+                
+                <li class="menu-item admin-only" onclick="loadReports()">
+                    <i class="fas fa-chart-pie"></i>
+                    <span>Reports</span>
+                </li>
+            </ul>
+            
+            <div class="sidebar-footer">
+                <div class="system-status">
+                    <span class="status-dot online"></span>
+                    <span>System Online</span>
+                </div>
+                <div class="iso-badge">
+                    <i class="fas fa-award"></i>
+                    <span>ISO 21001:2018</span>
+                </div>
+            </div>
+        </aside>
+
+        <!-- Main Content Area -->
+        <main class="content-area" id="contentArea">
+            <!-- Content will be loaded dynamically here -->
+            <div class="loading-container" id="loading">
+                <div class="loading-spinner"></div>
+                <p>Loading your dashboard...</p>
+            </div>
+        </main>
+    </div>
+
+    <!-- Modals -->
+    <div class="modal" id="assignmentModal">
+        <div class="modal-content">
+            <span class="close-modal" onclick="closeModal()">&times;</span>
+            <h3>Submit Assignment</h3>
+            <div id="modalBody">
+                <!-- Dynamic content -->
+            </div>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="js/auth.js"></script>
+    <script src="js/api.js"></script>
+    <script src="js/dashboard.js"></script>
+    <script src="js/drip-engine.js"></script>
+    <script src="js/assignments.js"></script>
+    <script src="js/exams.js"></script>
+    <script src="js/admin.js"></script>
+    
+    <!-- Main App -->
+    <script src="js/app.js"></script>
+    
+    <script>
+        // Initialize app
+        document.addEventListener('DOMContentLoaded', function() {
+            initApp();
+        });
+    </script>
+</body>
+</html>
