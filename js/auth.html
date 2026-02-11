@@ -1,47 +1,84 @@
 <script>
 /**
  * 🔐 LOGIN SCREEN UI
+ * Handles the visual presentation and submission of the login form.
  */
 function showLogin() {
+    console.log("Rendering Login UI...");
     const area = document.getElementById('contentArea');
+    if (!area) {
+        console.error("Content area not found for login rendering.");
+        return;
+    }
+
     area.innerHTML = `
-        <div class="login-container" style="display:flex; justify-content:center; align-items:center; min-height:60vh;">
-            <div class="card" style="width:100%; max-width:400px; padding:30px;">
-                <h2 style="text-align:center; color:#714B67;">RaveOne Academy</h2>
+        <div class="login-container" style="display:flex; justify-content:center; align-items:center; min-height:70vh; padding: 20px;">
+            <div class="card" style="width:100%; max-width:400px; padding:30px; border-radius: 12px; box-shadow: 0 10px 25px rgba(0,0,0,0.1);">
+                <div style="text-align:center; margin-bottom: 30px;">
+                    <img src="https://rajeshkrao1976.github.io/rta/assets/logo.png" alt="RaveOne" style="height: 50px; margin-bottom: 10px;">
+                    <h2 style="color:#714B67; margin: 0;">RaveOne Academy</h2>
+                    <p style="color: #666; font-size: 0.9rem;">ISO 21001:2018 Certified LMS</p>
+                </div>
+                
                 <form id="loginForm">
-                    <div class="form-group">
-                        <label>Email</label>
-                        <input type="email" id="email" class="form-control" required>
+                    <div class="form-group" style="margin-bottom: 20px;">
+                        <label style="display:block; margin-bottom: 5px; font-weight: 500;">Email Address</label>
+                        <input type="email" id="email" class="form-control" placeholder="admin@raveone.in" required style="width:100%; padding: 10px; border: 1px solid #ddd; border-radius: 6px;">
                     </div>
-                    <div class="form-group">
-                        <label>Password</label>
-                        <input type="password" id="password" class="form-control" required>
+                    
+                    <div class="form-group" style="margin-bottom: 25px;">
+                        <label style="display:block; margin-bottom: 5px; font-weight: 500;">Password</label>
+                        <input type="password" id="password" class="form-control" placeholder="••••••••" required style="width:100%; padding: 10px; border: 1px solid #ddd; border-radius: 6px;">
                     </div>
-                    <div id="loginErr" class="alert alert-danger hidden" style="color:red; margin:10px 0;"></div>
-                    <button type="submit" class="btn btn-primary btn-block">Sign In</button>
+                    
+                    <div id="loginErr" class="alert alert-danger hidden" style="color:#e74c3c; background: #fdf2f2; padding: 10px; border-radius: 6px; margin-bottom: 20px; font-size: 0.85rem; border: 1px solid #fad2d2;"></div>
+                    
+                    <button type="submit" class="btn btn-primary" style="width:100%; padding: 12px; font-weight: 600; border-radius: 6px; background: #714B67; color: white; border: none; cursor: pointer;">
+                        Sign In
+                    </button>
                 </form>
+                
+                <div style="margin-top: 25px; text-align: center; border-top: 1px solid #eee; padding-top: 20px;">
+                    <small style="color: #999;"><i class="fas fa-shield-alt"></i> Secure Academic Portal</small>
+                </div>
             </div>
         </div>
     `;
 
-    document.getElementById('loginForm').addEventListener('submit', async (e) => {
-        e.preventDefault();
-        const btn = e.target.querySelector('button');
-        btn.disabled = true;
-        btn.textContent = 'Verifying...';
-        
-        const result = await app.login(
-            document.getElementById('email').value,
-            document.getElementById('password').value
-        );
-
-        if (!result.success) {
+    const form = document.getElementById('loginForm');
+    if (form) {
+        form.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const btn = e.target.querySelector('button');
             const err = document.getElementById('loginErr');
-            err.textContent = result.error;
-            err.classList.remove('hidden');
-            btn.disabled = false;
-            btn.textContent = 'Sign In';
-        }
-    });
+            
+            btn.disabled = true;
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Verifying...';
+            err.classList.add('hidden');
+            
+            const email = document.getElementById('email').value;
+            const password = document.getElementById('password').value;
+
+            try {
+                const result = await app.login(email, password);
+
+                if (!result.success) {
+                    err.textContent = result.error || "Login failed. Please check your credentials.";
+                    err.classList.remove('hidden');
+                    btn.disabled = false;
+                    btn.textContent = 'Sign In';
+                }
+            } catch (error) {
+                console.error("Login Submission Error:", error);
+                err.textContent = "Unable to connect to server. Please try again later.";
+                err.classList.remove('hidden');
+                btn.disabled = false;
+                btn.textContent = 'Sign In';
+            }
+        });
+    }
 }
+
+// Ensure showLogin is globally accessible
+window.showLogin = showLogin;
 </script>
