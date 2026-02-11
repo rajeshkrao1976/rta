@@ -1,35 +1,40 @@
+<script>
 // 🚀 MAIN APPLICATION CONTROLLER
-
 class RaveOneLMS {
     constructor() {
         this.user = null;
         this.token = null;
         this.currentView = 'dashboard';
-        this.apiBase = 'YOUR_GAS_WEB_APP_URL';
+        // Use GAS_URL from your config.js
+        this.apiBase = typeof CONFIG !== 'undefined' ? CONFIG.GAS_URL : '';
     }
     
-  async initApp() {
-    this.token = localStorage.getItem('lms_token');
-    
-    if (this.token) {
-        try {
-            const response = await this.apiCall('auth/validate', {}, this.token);
-            if (response.valid) {
-                this.user = response.user;
-                this.setupUI();
-                this.loadDashboard();
-                return;
+    async initApp() {
+        console.log("Initializing App...");
+        this.token = localStorage.getItem('lms_token');
+        
+        if (this.token) {
+            try {
+                const response = await this.apiCall('auth/validate', {}, this.token);
+                if (response.valid) {
+                    this.user = response.user;
+                    this.setupUI();
+                    this.loadDashboard();
+                    return;
+                }
+            } catch (error) {
+                console.warn('Token invalid, showing login');
             }
-        } catch (error) {
-            console.warn('Token invalid, showing login');
+        }
+        
+        // Call global showLogin from js/auth.html
+        if (typeof showLogin === 'function') {
+            showLogin();
+        } else {
+            console.error("showLogin function not found.");
         }
     }
     
-    // ✅ FIX: Call the GLOBAL showLogin() function (defined in auth.js)
- 
-// To this:
-window.showLogin();
-      
     async login(email, password) {
         try {
             const response = await this.apiCall('auth/login', { email, password });
@@ -45,6 +50,8 @@ window.showLogin();
                 this.loadDashboard();
                 
                 return { success: true };
+            } else {
+                return { success: false, error: response.error };
             }
         } catch (error) {
             return { 
@@ -59,75 +66,52 @@ window.showLogin();
         localStorage.removeItem('lms_user');
         this.user = null;
         this.token = null;
-        this.showLogin();
+        if (typeof showLogin === 'function') {
+            showLogin();
+        } else {
+            location.reload();
+        }
     }
     
     setupUI() {
-        // Update user info
-        document.getElementById('userName').textContent = this.user.name;
-        document.getElementById('userRole').textContent = this.user.role;
+        if (!this.user) return;
         
-        // Show/hide admin menu items
+        document.getElementById('userInfo').querySelector('.user-name').textContent = this.user.name;
+        document.getElementById('userInfo').querySelector('.user-role').textContent = this.user.role;
+        
         const adminItems = document.querySelectorAll('.admin-only');
         adminItems.forEach(item => {
             item.style.display = this.user.role === 'admin' ? 'flex' : 'none';
-        });
-        
-        // Setup menu click handlers
-        document.querySelectorAll('.menu-item').forEach(item => {
-            item.addEventListener('click', (e) => {
-                e.currentTarget.classList.add('active');
-            });
         });
     }
     
     async loadView(view, params = {}) {
         this.currentView = view;
-        document.getElementById('contentArea').innerHTML = this.getLoadingHTML();
+        const contentArea = document.getElementById('contentArea');
+        contentArea.innerHTML = this.getLoadingHTML();
         
         try {
             let html = '';
-            
+            // These methods should be defined in your dashboard.js or view-specific files
             switch(view) {
                 case 'dashboard':
                     html = await this.getDashboardHTML();
                     break;
-                case 'courses':
-                    html = await this.getCoursesHTML();
-                    break;
-                case 'lessons':
-                    html = await this.getLessonsHTML(params.term, params.week);
-                    break;
-                case 'assignments':
-                    html = await this.getAssignmentsHTML();
-                    break;
-                case 'exams':
-                    html = await this.getExamsHTML();
-                    break;
-                case 'grades':
-                    html = await this.getGradesHTML();
-                    break;
-                case 'admin':
-                    html = await this.getAdminDashboardHTML();
-                    break;
-                case 'profile':
-                    html = await this.getProfileHTML();
-                    break;
+                // Add other cases as needed
                 default:
-                    html = '<div class="card"><div class="card-body">View not found</div></div>';
+                    html = '<div class="card"><div class="card-body">View content for "' + view + '" coming soon.</div></div>';
             }
             
-            document.getElementById('contentArea').innerHTML = html;
-            this.setupViewHandlers(view);
+            contentArea.innerHTML = html;
             
         } catch (error) {
-            document.getElementById('contentArea').innerHTML = `
+            contentArea.innerHTML = `
                 <div class="card">
                     <div class="card-body text-center">
                         <i class="fas fa-exclamation-triangle fa-3x text-danger mb-3"></i>
                         <h3>Error Loading View</h3>
                         <p>${error.message}</p>
-                        <button class="btn btn-primary mt-3" onclick="app.loadDashboard()">
+                        <button class="btn btn-primary mt-3" onclick="loadDashboard()">
                             Return to Dashboard
                         </button>
                     </div>
@@ -135,8 +119,18 @@ window.showLogin();
             `;
         }
     }
-    
+
+    getLoadingHTML() {
+        return `
+            <div class="loading-container">
+                <div class="loading-spinner"></div>
+                <p>Loading...</p>
+            </div>
+        `;
+    }
+
     async getDashboardHTML() {
+        // Placeholder summary data
         const data = await this.apiCall('dashboard/summary', {}, this.token);
         
         return `
@@ -145,122 +139,24 @@ window.showLogin();
                     <div class="col-3">
                         <div class="card stat-card">
                             <div class="card-body">
-                                <div class="stat-icon">
-                                    <i class="fas fa-graduation-cap text-primary"></i>
-                                </div>
-                                <div class="stat-content">
-                                    <h3>${data.activeCourses || 0}</h3>
-                                    <p>Active Courses</p>
-                                </div>
+                                <h3>${data.activeCourses || 0}</h3>
+                                <p>Active Courses</p>
                             </div>
                         </div>
                     </div>
-                    
-                    <div class="col-3">
-                        <div class="card stat-card">
-                            <div class="card-body">
-                                <div class="stat-icon">
-                                    <i class="fas fa-book-open text-success"></i>
-                                </div>
-                                <div class="stat-content">
-                                    <h3>${data.completedLessons || 0}/${data.totalLessons || 0}</h3>
-                                    <p>Lessons Completed</p>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                    
-                    <div class="col-3">
-                        <div class="card stat-card">
-                            <div class="card-body">
-                                <div class="stat-icon">
-                                    <i class="fas fa-tasks text-warning"></i>
-                                </div>
-                                <div class="stat-content">
-                                    <h3>${data.pendingAssignments || 0}</h3>
-                                    <p>Pending Assignments</p>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                    
-                    <div class="col-3">
-                        <div class="card stat-card">
-                            <div class="card-body">
-                                <div class="stat-icon">
-                                    <i class="fas fa-chart-line text-info"></i>
-                                </div>
-                                <div class="stat-content">
-                                    <h3>${data.currentGrade || '--'}%</h3>
-                                    <p>Current Grade</p>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-                
-                <div class="row">
-                    <div class="col-8">
-                        <div class="card">
-                            <div class="card-header">
-                                <h3 class="card-title">Learning Progress</h3>
-                            </div>
-                            <div class="card-body">
-                                <div id="progressChart"></div>
-                            </div>
-                        </div>
-                    </div>
-                    
-                    <div class="col-4">
-                        <div class="card">
-                            <div class="card-header">
-                                <h3 class="card-title">Today's Schedule</h3>
-                            </div>
-                            <div class="card-body">
-                                ${this.renderTodaysSchedule(data.todaysSessions || [])}
-                            </div>
-                        </div>
-                    </div>
-                </div>
-                
-                <div class="row">
-                    <div class="col-6">
-                        <div class="card">
-                            <div class="card-header">
-                                <h3 class="card-title">Recent Assignments</h3>
-                                <a href="#" onclick="app.loadView('assignments')" class="btn btn-sm btn-outline">
-                                    View All
-                                </a>
-                            </div>
-                            <div class="card-body">
-                                ${this.renderRecentAssignments(data.recentAssignments || [])}
-                            </div>
-                        </div>
-                    </div>
-                    
-                    <div class="col-6">
-                        <div class="card">
-                            <div class="card-header">
-                                <h3 class="card-title">Upcoming Deadlines</h3>
-                            </div>
-                            <div class="card-body">
-                                ${this.renderUpcomingDeadlines(data.upcomingDeadlines || [])}
-                            </div>
-                        </div>
-                    </div>
+                    <!-- Add other stat cards here -->
                 </div>
             </div>
         `;
     }
     
     async apiCall(endpoint, data = {}, token = null) {
-        const url = `${this.apiBase}/exec`;
+        // Note: For Google Apps Script, we use google.script.run for better security/performance,
+        // but since your backend uses doPost, we keep the fetch approach using your web app URL.
+        const url = this.apiBase;
         
         const options = {
             method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
             body: JSON.stringify({
                 endpoint,
                 data,
@@ -269,59 +165,32 @@ window.showLogin();
         };
         
         const response = await fetch(url, options);
-        const result = await response.json();
-        
         if (!response.ok) {
-            throw new Error(result.error || 'API call failed');
+            const errorText = await response.text();
+            throw new Error(errorText || 'API call failed');
         }
         
-        return result;
+        return await response.json();
     }
-    
-    // ... Additional methods for other views
 }
 
 // Global app instance
 const app = new RaveOneLMS();
 
-// Initialize app when DOM loads
+// Entry point function called by index.html
 async function initApp() {
     await app.initApp();
 }
 
-// Global functions for HTML onclick handlers
-function loadDashboard() {
-    app.loadView('dashboard');
-}
+// Global UI Navigation handlers
+function loadDashboard() { app.loadView('dashboard'); }
+function loadMyCourses() { app.loadView('courses'); }
+function loadLessons() { app.loadView('lessons'); }
+function loadAssignments() { app.loadView('assignments'); }
+function loadExams() { app.loadView('exams'); }
+function loadGrades() { app.loadView('grades'); }
+function loadProfile() { app.loadView('profile'); }
+function loadAdminDashboard() { app.loadView('admin'); }
+function logout() { app.logout(); }
 
-function loadMyCourses() {
-    app.loadView('courses');
-}
-
-function loadLessons() {
-    app.loadView('lessons');
-}
-
-function loadAssignments() {
-    app.loadView('assignments');
-}
-
-function loadExams() {
-    app.loadView('exams');
-}
-
-function loadGrades() {
-    app.loadView('grades');
-}
-
-function loadProfile() {
-    app.loadView('profile');
-}
-
-function loadAdminDashboard() {
-    app.loadView('admin');
-}
-
-function logout() {
-    app.logout();
-}
+</script>
