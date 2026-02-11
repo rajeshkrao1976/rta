@@ -27,8 +27,7 @@ class RaveOneLMS {
     
     // ✅ FIX: Call the GLOBAL showLogin() function (defined in auth.js)
    // Change this (Line 28-32 in your current app.js):
-showLogin() {
-    window.showLogin();
+showLogin() 
 }
 
 // To this:
