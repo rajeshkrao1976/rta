@@ -1,114 +1,131 @@
-// 🔐 CLIENT-SIDE AUTHENTICATION
+// 🔐 AUTHENTICATION MODULE
+const JWT_SECRET = 'your-secret-key-change-in-production';
+const TOKEN_EXPIRY = 24 * 60 * 60 * 1000; // 24 hours
 
-class AuthManager {
-    constructor() {
-        this.loginForm = null;
-        this.loginError = null;
-    }
+function authLogin(data) {
+  const { email, password } = data;
+  
+  // Get user from database
+  const users = getSheetData('👥 Users');
+  const user = users.find(u => u.Email === email);
+  
+  if (!user) {
+    auditLog('LOGIN_ATTEMPT', 'User', null, { email }, 'User not found');
+    throw new Error('Invalid credentials');
+  }
+  
+  // Simple password check (in production, use proper hashing)
+  if (user.PasswordHash !== password) {
+    user.FailedAttempts = parseInt(user.FailedAttempts || 0) + 1;
+    updateUser(user.UserID, { FailedAttempts: user.FailedAttempts });
     
-    initLogin() {
-        document.body.innerHTML = `
-            <div class="login-container">
-                <div class="login-card">
-                    <div class="login-header">
-                        <img src="assets/logo.png" alt="RaveOne" class="login-logo">
-                        <h1>RaveOne Academy LMS</h1>
-                        <p class="login-subtitle">ISO 21001:2018 Certified Learning Management System</p>
-                    </div>
-                    
-                    <div class="login-body">
-                        <form id="loginForm">
-                            <div class="form-group">
-                                <label for="email" class="form-label">
-                                    <i class="fas fa-envelope"></i> Email Address
-                                </label>
-                                <input type="email" id="email" class="form-control" 
-                                       placeholder="admin@raveone.in" required>
-                            </div>
-                            
-                            <div class="form-group">
-                                <label for="password" class="form-label">
-                                    <i class="fas fa-lock"></i> Password
-                                </label>
-                                <input type="password" id="password" class="form-control" 
-                                       placeholder="Enter your password" required>
-                            </div>
-                            
-                            <div id="loginError" class="alert alert-danger hidden">
-                                Invalid credentials. Please try again.
-                            </div>
-                            
-                            <button type="submit" class="btn btn-primary btn-block btn-lg">
-                                <i class="fas fa-sign-in-alt"></i> Sign In
-                            </button>
-                            
-                            <div class="login-footer mt-4 text-center">
-                                <p class="text-muted">
-                                    <i class="fas fa-shield-alt"></i>
-                                    Secure ISO 21001:2018 Compliant System
-                                </p>
-                            </div>
-                        </form>
-                    </div>
-                    
-                    <div class="login-footer">
-                        <div class="iso-badge">
-                            <i class="fas fa-award"></i>
-                            <span>ISO 21001:2018 Certified</span>
-                        </div>
-                        <p class="copyright">
-                            &copy; ${new Date().getFullYear()} RaveOne Consultants. All rights reserved.
-                        </p>
-                    </div>
-                </div>
-            </div>
-        `;
-        
-        this.setupLoginForm();
+    auditLog('LOGIN_ATTEMPT', 'User', user.UserID, { email }, 'Invalid password');
+    throw new Error('Invalid credentials');
+  }
+  
+  if (user.Status !== 'active') {
+    throw new Error('Account is ' + user.Status);
+  }
+  
+  // Reset failed attempts on successful login
+  updateUser(user.UserID, { 
+    FailedAttempts: 0,
+    LastLogin: new Date().toISOString()
+  });
+  
+  // Create JWT token
+  const token = createToken({
+    userId: user.UserID,
+    email: user.Email,
+    name: user.Name,
+    role: user.Role,
+    permissions: user.Permissions ? user.Permissions.split(',') : []
+  });
+  
+  auditLog('LOGIN_SUCCESS', 'User', user.UserID, { email, role: user.Role });
+  
+  return {
+    success: true,
+    token,
+    user: {
+      id: user.UserID,
+      email: user.Email,
+      name: user.Name,
+      role: user.Role,
+      permissions: user.Permissions ? user.Permissions.split(',') : [],
+      avatar: user.Avatar || 'default'
     }
-    
-    setupLoginForm() {
-        const form = document.getElementById('loginForm');
-        const errorDiv = document.getElementById('loginError');
-        
-        form.addEventListener('submit', async (e) => {
-            e.preventDefault();
-            
-            const email = document.getElementById('email').value;
-            const password = document.getElementById('password').value;
-            
-            const submitBtn = form.querySelector('button[type="submit"]');
-            const originalText = submitBtn.innerHTML;
-            
-            // Show loading state
-            submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Authenticating...';
-            submitBtn.disabled = true;
-            
-            try {
-                const result = await app.login(email, password);
-                
-                if (result.success) {
-                    // Login successful - app will handle redirection
-                    errorDiv.classList.add('hidden');
-                } else {
-                    // Show error
-                    errorDiv.textContent = result.error || 'Login failed';
-                    errorDiv.classList.remove('hidden');
-                    submitBtn.innerHTML = originalText;
-                    submitBtn.disabled = false;
-                }
-            } catch (error) {
-                errorDiv.textContent = 'Network error. Please try again.';
-                errorDiv.classList.remove('hidden');
-                submitBtn.innerHTML = originalText;
-                submitBtn.disabled = false;
-            }
-        });
-    }
+  };
 }
 
-// Export to global scope
-function showLogin() {
-    const auth = new AuthManager();
-    auth.initLogin();
+function createToken(payload) {
+  const header = { alg: 'HS256', typ: 'JWT' };
+  const expiry = new Date(Date.now() + TOKEN_EXPIRY);
+  
+  const tokenPayload = {
+    ...payload,
+    iat: Math.floor(Date.now() / 1000),
+    exp: Math.floor(expiry.getTime() / 1000)
+  };
+  
+  // In production, use a proper JWT library
+  // This is a simplified version for demo
+  const headerEncoded = Utilities.base64Encode(JSON.stringify(header));
+  const payloadEncoded = Utilities.base64Encode(JSON.stringify(tokenPayload));
+  const signature = Utilities.base64Encode(
+    Utilities.computeHmacSha256Signature(
+      headerEncoded + '.' + payloadEncoded,
+      JWT_SECRET
+    )
+  );
+  
+  return headerEncoded + '.' + payloadEncoded + '.' + signature;
+}
+
+function validateToken(token) {
+  try {
+    const parts = token.split('.');
+    if (parts.length !== 3) return null;
+    
+    const [headerEncoded, payloadEncoded, signature] = parts;
+    
+    // Verify signature
+    const expectedSignature = Utilities.base64Encode(
+      Utilities.computeHmacSha256Signature(
+        headerEncoded + '.' + payloadEncoded,
+        JWT_SECRET
+      )
+    );
+    
+    if (signature !== expectedSignature) return null;
+    
+    const payload = JSON.parse(Utilities.base64Decode(payloadEncoded));
+    
+    // Check expiry
+    if (payload.exp < Math.floor(Date.now() / 1000)) {
+      return null;
+    }
+    
+    return payload;
+  } catch (error) {
+    return null;
+  }
+}
+
+function authValidate(data, token) {
+  const payload = validateToken(token);
+  if (!payload) {
+    throw new Error('Invalid token');
+  }
+  
+  return {
+    valid: true,
+    user: {
+      id: payload.userId,
+      email: payload.email,
+      name: payload.name,
+      role: payload.role,
+      permissions: payload.permissions
+    }
+  };
 }
