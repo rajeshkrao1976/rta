@@ -1,0 +1,94 @@
+<script>
+/**
+ * 🔐 CLIENT-SIDE AUTHENTICATION MANAGER
+ * Handles the login screen UI and interactions.
+ */
+class AuthManager {
+    constructor() {
+        this.loginForm = null;
+    }
+    
+    initLogin() {
+        const contentArea = document.getElementById('contentArea');
+        if (!contentArea) return;
+
+        contentArea.innerHTML = `
+            <div class="login-container" style="display: flex; justify-content: center; align-items: center; min-height: 70vh;">
+                <div class="card" style="width: 100%; max-width: 400px; padding: var(--spacing-xl);">
+                    <div class="text-center mb-4">
+                        <img src="https://rajeshkrao1976.github.io/rta/assets/logo.png" alt="RaveOne" style="height: 60px; margin-bottom: 15px;">
+                        <h1 style="font-size: 24px; color: var(--primary-color);">RaveOne Academy</h1>
+                        <p class="text-muted">ISO 21001:2018 Certified LMS</p>
+                    </div>
+                    
+                    <form id="loginForm">
+                        <div class="form-group">
+                            <label class="form-label"><i class="fas fa-envelope"></i> Email Address</label>
+                            <input type="email" id="email" class="form-control" placeholder="admin@raveone.in" required>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label class="form-label"><i class="fas fa-lock"></i> Password</label>
+                            <input type="password" id="password" class="form-control" placeholder="Enter your password" required>
+                        </div>
+                        
+                        <div id="loginError" class="alert alert-danger hidden" style="background: #fdeaea; color: #e74c3c; padding: 10px; border-radius: 4px; margin-bottom: 15px; font-size: 13px;">
+                            Invalid credentials. Please try again.
+                        </div>
+                        
+                        <button type="submit" class="btn btn-primary btn-block btn-lg">
+                            <i class="fas fa-sign-in-alt"></i> Sign In
+                        </button>
+                    </form>
+                    
+                    <div class="mt-4 text-center">
+                        <small class="text-muted"><i class="fas fa-shield-alt"></i> Secure Academic Environment</small>
+                    </div>
+                </div>
+            </div>
+        `;
+        
+        this.setupLoginForm();
+    }
+    
+    setupLoginForm() {
+        const form = document.getElementById('loginForm');
+        const errorDiv = document.getElementById('loginError');
+        
+        form.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const email = document.getElementById('email').value;
+            const password = document.getElementById('password').value;
+            const submitBtn = form.querySelector('button[type="submit"]');
+            
+            submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Authenticating...';
+            submitBtn.disabled = true;
+            errorDiv.classList.add('hidden');
+            
+            try {
+                // Call the app global login method
+                const result = await app.login(email, password);
+                
+                if (!result.success) {
+                    errorDiv.textContent = result.error || 'Login failed';
+                    errorDiv.classList.remove('hidden');
+                    submitBtn.innerHTML = '<i class="fas fa-sign-in-alt"></i> Sign In';
+                    submitBtn.disabled = false;
+                }
+            } catch (error) {
+                errorDiv.textContent = 'Connection error. Please check your network.';
+                errorDiv.classList.remove('hidden');
+                submitBtn.innerHTML = '<i class="fas fa-sign-in-alt"></i> Sign In';
+                submitBtn.disabled = false;
+            }
+        });
+    }
+}
+
+// Global hook for the app controller to trigger the login screen
+function showLogin() {
+    const auth = new AuthManager();
+    auth.initLogin();
+}
+</script>
