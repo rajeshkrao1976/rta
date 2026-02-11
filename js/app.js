@@ -8,27 +8,26 @@ class RaveOneLMS {
         this.apiBase = 'YOUR_GAS_WEB_APP_URL';
     }
     
-    async initApp() {
-        // Check for existing session
-        this.token = localStorage.getItem('lms_token');
-        
-        if (this.token) {
-            try {
-                const response = await this.apiCall('auth/validate', {}, this.token);
-                if (response.valid) {
-                    this.user = response.user;
-                    this.setupUI();
-                    this.loadDashboard();
-                } else {
-                    this.showLogin();
-                }
-            } catch (error) {
-                this.showLogin();
+  async initApp() {
+    this.token = localStorage.getItem('lms_token');
+    
+    if (this.token) {
+        try {
+            const response = await this.apiCall('auth/validate', {}, this.token);
+            if (response.valid) {
+                this.user = response.user;
+                this.setupUI();
+                this.loadDashboard();
+                return;
             }
-        } else {
-            this.showLogin();
+        } catch (error) {
+            console.warn('Token invalid, showing login');
         }
     }
+    
+    // ✅ FIX: Call the GLOBAL showLogin() function (defined in auth.js)
+    showLogin();
+}
     
     async login(email, password) {
         try {
