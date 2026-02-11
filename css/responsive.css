@@ -1,0 +1,151 @@
+/* 📱 RESPONSIVE DESIGN */
+
+/* Mobile (0-768px) */
+@media (max-width: 768px) {
+    .nav-container {
+        padding: 0 var(--spacing-md);
+    }
+    
+    .brand-name {
+        display: none;
+    }
+    
+    .user-info {
+        display: none;
+    }
+    
+    .dropdown-menu {
+        width: 180px;
+    }
+    
+    .sidebar {
+        width: 0;
+        transform: translateX(-100%);
+        transition: transform var(--transition-normal);
+    }
+    
+    .sidebar.active {
+        width: 240px;
+        transform: translateX(0);
+    }
+    
+    .content-area {
+        margin-left: 0;
+        padding: var(--spacing-md);
+    }
+    
+    .sidebar:hover ~ .content-area {
+        margin-left: 0;
+    }
+    
+    .col {
+        flex: 0 0 100%;
+        max-width: 100%;
+    }
+    
+    .card-header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: var(--spacing-sm);
+    }
+    
+    .table-responsive {
+        margin: 0 calc(var(--spacing-md) * -1);
+        width: calc(100% + var(--spacing-md) * 2);
+    }
+    
+    /* Mobile Menu Toggle */
+    .mobile-menu-toggle {
+        display: block;
+        background: none;
+        border: none;
+        font-size: 20px;
+        color: var(--text-primary);
+        cursor: pointer;
+        padding: var(--spacing-sm);
+    }
+}
+
+/* Tablet (769-1024px) */
+@media (min-width: 769px) and (max-width: 1024px) {
+    .nav-container {
+        padding: 0 var(--spacing-lg);
+    }
+    
+    .sidebar {
+        width: 70px;
+    }
+    
+    .sidebar:hover {
+        width: 200px;
+    }
+    
+    .content-area {
+        margin-left: 70px;
+    }
+    
+    .sidebar:hover ~ .content-area {
+        margin-left: 200px;
+    }
+    
+    .col {
+        flex: 0 0 50%;
+        max-width: 50%;
+    }
+    
+    .mobile-menu-toggle {
+        display: none;
+    }
+}
+
+/* Desktop (1025px+) */
+@media (min-width: 1025px) {
+    .mobile-menu-toggle {
+        display: none;
+    }
+    
+    .nav-container {
+        max-width: 1400px;
+    }
+    
+    .content-area {
+        max-width: calc(1400px - 240px - var(--spacing-lg) * 2);
+        margin: 0 auto;
+        margin-left: calc(70px + var(--spacing-lg) * 2);
+    }
+    
+    .sidebar:hover ~ .content-area {
+        margin-left: calc(240px + var(--spacing-lg) * 2);
+    }
+}
+
+/* High DPI Screens */
+@media (-webkit-min-device-pixel-ratio: 2), (min-resolution: 192dpi) {
+    .logo {
+        background-image: url('assets/logo@2x.png');
+        background-size: contain;
+    }
+}
+
+/* Print */
+@media print {
+    body {
+        background: white;
+        color: black;
+    }
+    
+    .top-nav, .sidebar {
+        display: none;
+    }
+    
+    .content-area {
+        margin: 0;
+        padding: 0;
+    }
+    
+    .card {
+        box-shadow: none;
+        border: 1px solid #000;
+        page-break-inside: avoid;
+    }
+}
