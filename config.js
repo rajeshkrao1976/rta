@@ -11,7 +11,7 @@ class RaveOneLMS {
          * The application will prioritize the URL provided in config.js.
          * If CONFIG is missing, it falls back to the hardcoded URL provided.
          */
-        const defaultUrl = 'https://script.google.com/a/macros/raveone.in/s/AKfycbxRbT8pfN42XeApgBt5UnkkhGRT4hVvnL6iDze1Qj5VlqxS0i95cLLT8150FniVccOM/exec';
+        const defaultUrl = 'https://script.google.com/macros/s/AKfycbwtFkwwQmQIJTsJSxfJP4RbPORlIPEItHjF1Lch2Ag_Ai3IAzyaI4kb7nqxX3Z3h8CG/exec';
         this.apiBase = typeof CONFIG !== 'undefined' ? CONFIG.GAS_URL : defaultUrl;
     }
     
