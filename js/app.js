@@ -26,7 +26,9 @@ class RaveOneLMS {
     }
     
     // ✅ FIX: Call the GLOBAL showLogin() function (defined in auth.js)
-    showLogin();
+    showLogin() {
+    // Delegate to the global function
+    window.showLogin();
 }
     
     async login(email, password) {
