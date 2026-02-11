@@ -6,7 +6,7 @@
 const API = {
     async call(endpoint, data = {}, token = null) {
         // Fallback to current script URL if CONFIG is not loaded
-        const url = typeof CONFIG !== 'undefined' ? CONFIG.GAS_URL : 'https://script.google.com/a/macros/raveone.in/s/AKfycbxRbT8pfN42XeApgBt5UnkkhGRT4hVvnL6iDze1Qj5VlqxS0i95cLLT8150FniVccOM/exec';
+        const url = typeof CONFIG !== 'undefined' ? CONFIG.GAS_URL : 'https://script.google.com/macros/s/AKfycbwtFkwwQmQIJTsJSxfJP4RbPORlIPEItHjF1Lch2Ag_Ai3IAzyaI4kb7nqxX3Z3h8CG/exec';
         
         const options = {
             method: 'POST',
