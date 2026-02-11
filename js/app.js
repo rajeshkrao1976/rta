@@ -1,37 +1,64 @@
 <script>
-// 🚀 MAIN APPLICATION CONTROLLER
+/**
+ * 🚀 MAIN APPLICATION CONTROLLER
+ * This file handles state management, view routing, and API communication.
+ */
 class RaveOneLMS {
     constructor() {
         this.user = null;
         this.token = null;
         this.currentView = 'dashboard';
-        // Use GAS_URL from your config.js
-        this.apiBase = typeof CONFIG !== 'undefined' ? CONFIG.GAS_URL : '';
+        
+        /**
+         * 🔗 API ENDPOINT CONFIGURATION
+         * The application will prioritize the URL provided in config.js.
+         * Falls back to the hardcoded URL if CONFIG is missing.
+         */
+        const defaultUrl = 'https://script.google.com/a/macros/raveone.in/s/AKfycbxRbT8pfN42XeApgBt5UnkkhGRT4hVvnL6iDze1Qj5VlqxS0i95cLLT8150FniVccOM/exec';
+        this.apiBase = typeof CONFIG !== 'undefined' ? CONFIG.GAS_URL : defaultUrl;
     }
     
     async initApp() {
-        console.log("Initializing App...");
-        this.token = localStorage.getItem('lms_token');
+        console.log("Initializing RaveOne Academy App...");
         
-        if (this.token) {
-            try {
+        try {
+            this.token = localStorage.getItem('lms_token');
+            
+            if (this.token) {
+                console.log("Token found, validating...");
                 const response = await this.apiCall('auth/validate', {}, this.token);
-                if (response.valid) {
+                
+                if (response && response.valid) {
                     this.user = response.user;
                     this.setupUI();
-                    this.loadDashboard();
+                    await this.loadView('dashboard');
                     return;
                 }
-            } catch (error) {
-                console.warn('Token invalid, showing login');
             }
+        } catch (error) {
+            console.warn('Authentication check failed:', error);
         }
         
-        // Call global showLogin from js/auth.html
+        // If we reach here, token is missing, invalid, or server is unreachable
+        this.showLoginScreen();
+    }
+
+    showLoginScreen() {
+        console.log("Showing login screen...");
+        // Check if showLogin (from js/auth.html) exists
         if (typeof showLogin === 'function') {
             showLogin();
         } else {
-            console.error("showLogin function not found.");
+            document.getElementById('contentArea').innerHTML = `
+                <div class="card">
+                    <div class="card-body text-center" style="padding: 50px;">
+                        <i class="fas fa-lock fa-3x mb-3" style="color: #714B67;"></i>
+                        <h3>Authentication Required</h3>
+                        <p>The login module could not be loaded. Please ensure "js/auth.html" is correctly included.</p>
+                        <button class="btn btn-primary" onclick="location.reload()">Refresh Page</button>
+                    </div>
+                </div>
+            `;
         }
     }
     
@@ -39,7 +66,7 @@ class RaveOneLMS {
         try {
             const response = await this.apiCall('auth/login', { email, password });
             
-            if (response.success) {
+            if (response && response.success) {
                 this.user = response.user;
                 this.token = response.token;
                 
@@ -47,16 +74,16 @@ class RaveOneLMS {
                 localStorage.setItem('lms_user', JSON.stringify(this.user));
                 
                 this.setupUI();
-                this.loadDashboard();
+                await this.loadView('dashboard');
                 
                 return { success: true };
             } else {
-                return { success: false, error: response.error };
+                return { success: false, error: response?.error || 'Invalid credentials' };
             }
         } catch (error) {
             return { 
                 success: false, 
-                error: error.message || 'Login failed' 
+                error: 'Server unreachable. Please try again later.' 
             };
         }
     }
@@ -66,18 +93,19 @@ class RaveOneLMS {
         localStorage.removeItem('lms_user');
         this.user = null;
         this.token = null;
-        if (typeof showLogin === 'function') {
-            showLogin();
-        } else {
-            location.reload();
-        }
+        this.showLoginScreen();
     }
     
     setupUI() {
         if (!this.user) return;
         
-        document.getElementById('userInfo').querySelector('.user-name').textContent = this.user.name;
-        document.getElementById('userInfo').querySelector('.user-role').textContent = this.user.role;
+        const userInfo = document.getElementById('userInfo');
+        if (userInfo) {
+            const nameEl = userInfo.querySelector('.user-name');
+            const roleEl = userInfo.querySelector('.user-role');
+            if (nameEl) nameEl.textContent = this.user.name;
+            if (roleEl) roleEl.textContent = this.user.role;
+        }
         
         const adminItems = document.querySelectorAll('.admin-only');
         adminItems.forEach(item => {
@@ -88,23 +116,28 @@ class RaveOneLMS {
     async loadView(view, params = {}) {
         this.currentView = view;
         const contentArea = document.getElementById('contentArea');
+        if (!contentArea) return;
+        
         contentArea.innerHTML = this.getLoadingHTML();
         
         try {
             let html = '';
-            // These methods should be defined in your dashboard.js or view-specific files
             switch(view) {
                 case 'dashboard':
                     html = await this.getDashboardHTML();
                     break;
-                // Add other cases as needed
+                case 'admin':
+                    if (this.user?.role !== 'admin') throw new Error('Unauthorized access');
+                    html = '<div class="card"><div class="card-body">Admin Dashboard content coming soon.</div></div>';
+                    break;
                 default:
-                    html = '<div class="card"><div class="card-body">View content for "' + view + '" coming soon.</div></div>';
+                    html = `<div class="card"><div class="card-body">View content for "${view}" is under development.</div></div>`;
             }
             
             contentArea.innerHTML = html;
             
         } catch (error) {
+            console.error("View Load Error:", error);
             contentArea.innerHTML = `
                 <div class="card">
                     <div class="card-body text-center">
@@ -112,7 +145,7 @@ class RaveOneLMS {
                         <h3>Error Loading View</h3>
                         <p>${error.message}</p>
                         <button class="btn btn-primary mt-3" onclick="loadDashboard()">
-                            Return to Dashboard
+                            Retry Dashboard
                         </button>
                     </div>
                 </div>
@@ -124,53 +157,81 @@ class RaveOneLMS {
         return `
             <div class="loading-container">
                 <div class="loading-spinner"></div>
-                <p>Loading...</p>
+                <p>Syncing data with server...</p>
             </div>
         `;
     }
 
     async getDashboardHTML() {
-        // Placeholder summary data
-        const data = await this.apiCall('dashboard/summary', {}, this.token);
-        
-        return `
-            <div class="dashboard">
-                <div class="row">
-                    <div class="col-3">
-                        <div class="card stat-card">
-                            <div class="card-body">
-                                <h3>${data.activeCourses || 0}</h3>
-                                <p>Active Courses</p>
+        try {
+            // Note: Your backend routeRequest MUST handle 'dashboard/summary'
+            const data = await this.apiCall('dashboard/summary', {}, this.token);
+            
+            return `
+                <div class="dashboard">
+                    <div class="row">
+                        <div class="col-3">
+                            <div class="card stat-card">
+                                <div class="card-body">
+                                    <div class="stat-icon"><i class="fas fa-graduation-cap" style="color: #714B67;"></i></div>
+                                    <h3>${data?.activeCourses || 0}</h3>
+                                    <p>Active Courses</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-3">
+                            <div class="card stat-card">
+                                <div class="card-body">
+                                    <div class="stat-icon"><i class="fas fa-tasks" style="color: #00A09D;"></i></div>
+                                    <h3>${data?.pendingAssignments || 0}</h3>
+                                    <p>Assignments Due</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-3">
+                            <div class="card stat-card">
+                                <div class="card-body">
+                                    <div class="stat-icon"><i class="fas fa-chart-line" style="color: #FF7F50;"></i></div>
+                                    <h3>${data?.currentGrade || '--'}%</h3>
+                                    <p>Current Grade</p>
+                                </div>
                             </div>
                         </div>
                     </div>
-                    <!-- Add other stat cards here -->
                 </div>
-            </div>
-        `;
+            `;
+        } catch (e) {
+            // Provide a graceful fallback if dashboard data fails
+            return `
+                <div class="card">
+                    <div class="card-body">
+                        <div class="alert alert-warning" style="background: rgba(243, 156, 18, 0.1); border: 1px solid #f39c12; padding: 15px; border-radius: 6px;">
+                            <i class="fas fa-info-circle"></i> Welcome back, ${this.user?.name || 'User'}. 
+                            General dashboard summary is currently unavailable, but your learning path is accessible via the sidebar.
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
     }
     
     async apiCall(endpoint, data = {}, token = null) {
-        // Note: For Google Apps Script, we use google.script.run for better security/performance,
-        // but since your backend uses doPost, we keep the fetch approach using your web app URL.
         const url = this.apiBase;
-        
+        if (!url) throw new Error("API URL not configured.");
+
         const options = {
             method: 'POST',
-            body: JSON.stringify({
-                endpoint,
-                data,
-                token
-            })
+            body: JSON.stringify({ endpoint, data, token })
         };
         
-        const response = await fetch(url, options);
-        if (!response.ok) {
-            const errorText = await response.text();
-            throw new Error(errorText || 'API call failed');
+        try {
+            const response = await fetch(url, options);
+            if (!response.ok) throw new Error(`HTTP Error: ${response.status}`);
+            return await response.json();
+        } catch (err) {
+            console.error(`API Call failed [${endpoint}]:`, err);
+            throw err;
         }
-        
-        return await response.json();
     }
 }
 
@@ -182,7 +243,10 @@ async function initApp() {
     await app.initApp();
 }
 
-// Global UI Navigation handlers
+/**
+ * Global Navigation Handlers
+ * These are called by onclick attributes in index.html
+ */
 function loadDashboard() { app.loadView('dashboard'); }
 function loadMyCourses() { app.loadView('courses'); }
 function loadLessons() { app.loadView('lessons'); }
@@ -192,5 +256,4 @@ function loadGrades() { app.loadView('grades'); }
 function loadProfile() { app.loadView('profile'); }
 function loadAdminDashboard() { app.loadView('admin'); }
 function logout() { app.logout(); }
-
 </script>
