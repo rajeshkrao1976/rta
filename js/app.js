@@ -18,6 +18,10 @@ class RaveOneLMS {
         this.apiBase = typeof CONFIG !== 'undefined' ? CONFIG.GAS_URL : defaultUrl;
     }
     
+    /**
+     * Initializes the application.
+     * Checks for an existing session or redirects to login.
+     */
     async initApp() {
         console.log("Initializing RaveOne Academy App...");
         
@@ -25,10 +29,11 @@ class RaveOneLMS {
             this.token = localStorage.getItem('lms_token');
             
             if (this.token) {
-                console.log("Token found, validating...");
+                console.log("Token found, validating with server...");
                 const response = await this.apiCall('auth/validate', {}, this.token);
                 
                 if (response && response.valid) {
+                    console.log("Session valid for:", response.user.name);
                     this.user = response.user;
                     this.setupUI();
                     await this.loadView('dashboard');
@@ -39,29 +44,37 @@ class RaveOneLMS {
             console.warn('Authentication check failed:', error);
         }
         
-        // If we reach here, token is missing, invalid, or server is unreachable
+        // No valid token found or server error
         this.showLoginScreen();
     }
 
+    /**
+     * Triggers the login UI from the Auth module.
+     */
     showLoginScreen() {
-        console.log("Showing login screen...");
-        // Check if showLogin (from js/auth.html) exists
+        console.log("Redirecting to login...");
         if (typeof showLogin === 'function') {
             showLogin();
         } else {
-            document.getElementById('contentArea').innerHTML = `
-                <div class="card">
-                    <div class="card-body text-center" style="padding: 50px;">
-                        <i class="fas fa-lock fa-3x mb-3" style="color: #714B67;"></i>
-                        <h3>Authentication Required</h3>
-                        <p>The login module could not be loaded. Please ensure "js/auth.html" is correctly included.</p>
-                        <button class="btn btn-primary" onclick="location.reload()">Refresh Page</button>
+            const content = document.getElementById('contentArea');
+            if (content) {
+                content.innerHTML = `
+                    <div class="card" style="margin-top: 50px;">
+                        <div class="card-body text-center" style="padding: 50px;">
+                            <i class="fas fa-lock fa-3x mb-3" style="color: #714B67;"></i>
+                            <h3>Session Required</h3>
+                            <p>Please log in to access the RaveOne Academy LMS.</p>
+                            <button class="btn btn-primary" onclick="location.reload()">Refresh Page</button>
+                        </div>
                     </div>
-                </div>
-            `;
+                `;
+            }
         }
     }
     
+    /**
+     * Handles the login process.
+     */
     async login(email, password) {
         try {
             const response = await this.apiCall('auth/login', { email, password });
@@ -83,19 +96,25 @@ class RaveOneLMS {
         } catch (error) {
             return { 
                 success: false, 
-                error: 'Server unreachable. Please try again later.' 
+                error: 'Authentication server unreachable.' 
             };
         }
     }
     
+    /**
+     * Logs out the user and clears local storage.
+     */
     logout() {
         localStorage.removeItem('lms_token');
         localStorage.removeItem('lms_user');
         this.user = null;
         this.token = null;
-        this.showLoginScreen();
+        location.reload(); // Refresh to clean state
     }
     
+    /**
+     * Updates UI elements based on user role and data.
+     */
     setupUI() {
         if (!this.user) return;
         
@@ -107,12 +126,16 @@ class RaveOneLMS {
             if (roleEl) roleEl.textContent = this.user.role;
         }
         
+        // Handle admin-only visibility
         const adminItems = document.querySelectorAll('.admin-only');
         adminItems.forEach(item => {
             item.style.display = this.user.role === 'admin' ? 'flex' : 'none';
         });
     }
     
+    /**
+     * Main view router.
+     */
     async loadView(view, params = {}) {
         this.currentView = view;
         const contentArea = document.getElementById('contentArea');
@@ -128,10 +151,10 @@ class RaveOneLMS {
                     break;
                 case 'admin':
                     if (this.user?.role !== 'admin') throw new Error('Unauthorized access');
-                    html = '<div class="card"><div class="card-body">Admin Dashboard content coming soon.</div></div>';
+                    html = '<div class="card"><div class="card-body">Admin Dashboard is under maintenance.</div></div>';
                     break;
                 default:
-                    html = `<div class="card"><div class="card-body">View content for "${view}" is under development.</div></div>`;
+                    html = `<div class="card"><div class="card-body">Module "${view}" is coming soon.</div></div>`;
             }
             
             contentArea.innerHTML = html;
@@ -142,7 +165,7 @@ class RaveOneLMS {
                 <div class="card">
                     <div class="card-body text-center">
                         <i class="fas fa-exclamation-triangle fa-3x text-danger mb-3"></i>
-                        <h3>Error Loading View</h3>
+                        <h3>Error Loading Module</h3>
                         <p>${error.message}</p>
                         <button class="btn btn-primary mt-3" onclick="loadDashboard()">
                             Retry Dashboard
@@ -164,7 +187,7 @@ class RaveOneLMS {
 
     async getDashboardHTML() {
         try {
-            // Note: Your backend routeRequest MUST handle 'dashboard/summary'
+            // Note: Your backend Code.gs routeRequest MUST handle 'dashboard/summary'
             const data = await this.apiCall('dashboard/summary', {}, this.token);
             
             return `
@@ -201,13 +224,12 @@ class RaveOneLMS {
                 </div>
             `;
         } catch (e) {
-            // Provide a graceful fallback if dashboard data fails
             return `
                 <div class="card">
                     <div class="card-body">
                         <div class="alert alert-warning" style="background: rgba(243, 156, 18, 0.1); border: 1px solid #f39c12; padding: 15px; border-radius: 6px;">
-                            <i class="fas fa-info-circle"></i> Welcome back, ${this.user?.name || 'User'}. 
-                            General dashboard summary is currently unavailable, but your learning path is accessible via the sidebar.
+                            <i class="fas fa-info-circle"></i> Welcome, ${this.user?.name || 'User'}. 
+                            Dashboard summary is loading... if this takes too long, please check your network.
                         </div>
                     </div>
                 </div>
@@ -215,6 +237,9 @@ class RaveOneLMS {
         }
     }
     
+    /**
+     * Standard Fetch wrapper for API calls to doPost.
+     */
     async apiCall(endpoint, data = {}, token = null) {
         const url = this.apiBase;
         if (!url) throw new Error("API URL not configured.");
@@ -238,14 +263,13 @@ class RaveOneLMS {
 // Global app instance
 const app = new RaveOneLMS();
 
-// Entry point function called by index.html
+// Entry point function called by index.html script block
 async function initApp() {
     await app.initApp();
 }
 
 /**
- * Global Navigation Handlers
- * These are called by onclick attributes in index.html
+ * Global Navigation Handlers (UI Glue)
  */
 function loadDashboard() { app.loadView('dashboard'); }
 function loadMyCourses() { app.loadView('courses'); }
