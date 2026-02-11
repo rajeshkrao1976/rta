@@ -26,13 +26,10 @@ class RaveOneLMS {
     }
     
     // ✅ FIX: Call the GLOBAL showLogin() function (defined in auth.js)
-   // Change this (Line 28-32 in your current app.js):
-showLogin() 
-}
-
+ 
 // To this:
 window.showLogin();
-    
+      
     async login(email, password) {
         try {
             const response = await this.apiCall('auth/login', { email, password });
